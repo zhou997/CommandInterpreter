@@ -1,19 +1,19 @@
 #include<iostream>
-#include<cstring>//标准C++函数库，主要用于字符串处理
+#include<cstring>
 #include<sys/types.h>//基本系统数据类型
 #include<sys/stat.h>//文件状态
 #include<dirent.h>//文件操作函数
 #include<fcntl.h>//文件控制
-#include<time.h>//定义关于时间的函数
-#include<ftw.h>//文件树漫游
+#include<ftw.h>//文件夹便利
 #include<queue>
 #include<iomanip>
 #include<dirent.h>
+#include <sys/utsname.h>
 #include<stdlib.h>
 #include <unistd.h>
 
 using namespace std;
-
+struct utsname uts;
 
 void pwd();    //显示当前所在目录的路径名
 void list(string &dirname);    //列出指定目录名中的所有目录及文件
@@ -21,68 +21,122 @@ void cd(string &dirname);     //改变当前工作目录
 void mkdir(string& dirname); //新建目录
 void rmdir(string& dirname); //删除目录
 void rename(string &filename1, string &filename2); //重命名一个文件或目录
-void find(string& dirname);   //在指定的目录及其子目录中查找指定的文件，并输出查找到的文件的绝对路径。
-void copy();   //复制一个已存在的文件
+void find(string &variable1, string &variable2, string &varaible3);  
+void copy(string& path, string& name);   //复制一个已存在的文件
+void scanDir(const char* path);
 
-bool startWith(const string& str, const string& head) {
-	return str.compare(0, head.size(), head) == 0;
+void version();
+int i = 0;
+string name;
+string path1;
+char* stringToChar(string& str) {
+	char* ch;
+	int len = str.length();
+	ch = (char*)malloc((len + 1) * sizeof(char));
+	strcpy(ch, str.c_str());
 }
+
 int main()
 {
-	string str;
-	string path;
-	while (str != "exit") {
+	string command;
+	string variable1, variable2, variable3;
+	while (command != "exit") {
+		command.clear();
+		variable1.clear();
+		variable2.clear();
+		variable3.clear();
+
 		cout << "zhou997:/$ ";
-		getline(cin, str);
-		if (str == "pwd") {
+		while (true) {
+			cin >> command;
+			char c = getchar();
+			if (c == '\n') break;
+			cin >> variable1;
+			c = getchar();
+			if (c == '\n') break;
+			cin >> variable2;
+			c = getchar();
+			if (c == '\n') break;
+			cin >> variable3;
+			c = getchar();
+			if (c == '\n') break;
+		}
+		if (command == "pwd") {
 			pwd();
 		}
 
-		if (startWith(str,string("list "))==1) {
-			str = str.replace(0, string("list ").length(), "");
-			list(str);
+		if (command == "list") {
+			if (variable1.empty()) {
+				char res[80];
+				getcwd(res, sizeof(res));
+				variable1 = res;
+				list(variable1);
+			}
+			else {
+				list(variable1);
+			}
+
 		}
-		if (str == "list") {
-			char res[80];
-			getcwd(res, sizeof(res));
-			str = res;
-			list(str);
+		if (command == "cd") {
+			if (variable1.empty()) {
+				string home;
+				home = getenv("HOME");
+				cd(home);
+			}
+			else {
+				cd(variable1);
+			}
 		}
-		if (str == "cd") {
-			string home;
-			home = getenv("HOME");
-			cd(home);
+
+		if (command == "mkdir") {
+			if (variable1.empty()) {
+				cout << "需要目录名" << endl;
+
+			}
+			else { 
+				mkdir(variable1); 
+			}
 		}
-		if (startWith(str, string("cd ")) == 1) {
-			str = str.replace(0, string("cd ").length(), "");
-			cd(str);
+
+		if (command == "rmdir") {
+			if (variable1.empty()) {
+				cout << "需要目录名" << endl;
+			}
+			else {
+			rmdir(variable1);
+			}
 		}
-		if (str == "mkdir") {
-			cout << "需要目录名"<<endl;
+		if (command == "rename") {
+			if (variable1.empty()) {
+				cout << "需要原名称" << endl;
+			}
+			if (variable2.empty()) {
+				cout << "需要目标名称" << endl;
+			}
+			else {
+				rename(variable1, variable2);
+			}
 		}
-		if (startWith(str, string("mkdir ")) == 1) {
-			str = str.replace(0, string("mkdir ").length(), "");
-			mkdir(str);
+		if (command == "version") {
+			version();
 		}
-		if (str == "rmdir") {
-			cout << "需要目录名" << endl;
+
+		if (command == "copy") {
+			if (variable1.empty()) {
+				cout << "需要文件名" << endl;
+			}
+			else {
+				copy(variable1, variable2);
+
+			}
 		}
-		if (startWith(str, string("rmdir ")) == 1) {
-			str = str.replace(0, string("rmdir ").length(), "");
-			mkdir(str);
-		}
-		if (str == "rename") {
-			cout << "需要文件名" << endl;
-		}
-		if (startWith(str, string("rename ")) == 1) {
-			str = str.replace(0, string("rename ").length(), "");
-			mkdir(str);
-		}
-		if (str == "copy"){
-			//copy();
-		}
-		if (str == "find") {
-			//find();
+		if (command == "find") {
+			if (variable1.empty()) {
+				cout << "需要路径" << endl;
+			}
+			else {
+				find(variable1, variable2, variable3);
+			}
 		}
 	}
 	return 0;
@@ -99,9 +153,7 @@ void list(string &dirname){
 	struct dirent* dp;
 	int count = 0;
 	char* dir;
-	int len = dirname.length();
-	dir = (char*)malloc((len + 1) * sizeof(char));
-	strcpy(dir, dirname.c_str());
+	dir = stringToChar(dirname);
 	directory = opendir(dir);
 	if (directory == NULL) {
 		cout << "无法打开目录" << endl;
@@ -112,9 +164,9 @@ void list(string &dirname){
 		if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {}
 
 		else
-			cout <<std::left << setw(20) << dp->d_name ;
+			cout <<std::left << setw(25) << dp->d_name;
 		count++;
-		if (count % 8 == 0)
+		if (count % 5 == 0)
 			cout << endl;
 
 	}
@@ -126,9 +178,7 @@ void list(string &dirname){
 
 void cd(string &path) {
 	char *dir;
-	int len = path.length();
-	dir = (char*)malloc((len + 1) * sizeof(char));
-	strcpy(dir, path.c_str());
+	dir = stringToChar(path);
 	if (chdir(dir) == 0)
 	{
 		return;
@@ -142,9 +192,7 @@ void cd(string &path) {
 
 void mkdir(string& path) {
 	char *filename;
-	int len = path.length();
-	filename = (char*)malloc((len + 1) * sizeof(char));
-	strcpy(filename, path.c_str());
+	filename = stringToChar(path);
 	if (mkdir(filename, 0777) == 0)
 	{}
 	else
@@ -155,9 +203,7 @@ void mkdir(string& path) {
 
 void rmdir(string& path) {
 	char* filepath;
-	int len = path.length();
-	filepath = (char*)malloc((len + 1) * sizeof(char));
-	strcpy(filepath, path.c_str());
+	filepath = stringToChar(path);
 	if (rmdir(filepath) == 0)
 	{
 	}
@@ -172,17 +218,82 @@ void rename(string& filename1, string& filename2)
 {
 	char* file1;
 	char* file2;
-	int len1 = filename1.length();
-	filename1 = (char*)malloc((len1 + 1) * sizeof(char));
-	int len2 = filename2.length();
-	filename2 = (char*)malloc((len2 + 1) * sizeof(char));
-	strcpy(file1, filename1.c_str());
-	strcpy(file2, filename2.c_str());
-
+	file1 = stringToChar(filename1);
+	file2 = stringToChar(filename2);
 	if (rename(file1, file2) == 0)
 	{
 	}
 	else
 		cout << filename1 << " 修改失败 " << filename2 << endl;
 
+}
+
+static int filter(const struct dirent* dir_ent)
+{
+	char* str = "/";
+	char* fpath = stringToChar(path1);
+	fpath = strcat(fpath, str);
+
+	if (!strcmp(dir_ent->d_name, ".") || !strcmp(dir_ent->d_name, "..")) return 0;
+	std::string fname = dir_ent->d_name;
+
+	if (dir_ent->d_type == DT_DIR) {
+		char* name = stringToChar(fname);
+		fpath= strcat(fpath, name);
+		scanDir(fpath);
+	}
+	if (fname.find(name) == std::string::npos) {
+		return 0;
+	}
+	return 1;
+}
+void scanDir(const char* path) {
+	struct dirent** namelist;
+	int n = scandir(path, &namelist, filter, alphasort);
+	for (int i = 0; i < n; i++) {
+		std::string fname = namelist[i]->d_name;
+		cout <<fname<<"	"<< path << endl;
+	}
+}
+void find(string& varaible1, string& varaible2, string& varaible3) {
+	char* path;
+	char* option;
+	char* fname;
+	path = stringToChar(varaible1);
+	option = stringToChar(varaible2);
+	fname = stringToChar(varaible3);
+	name = fname;
+	path1 = path;
+	scanDir(path);
+}
+
+void copy(string& para1, string& para2) {
+	char* name;
+	char* path;
+	char* str = "/";
+	path = stringToChar(para2);
+	path = strcat(path, str);
+	name = stringToChar(para1);
+	FILE* fp1;
+	fp1 = fopen(name, "r");
+	FILE* fp2;
+	fp2 = fopen(strcat(path, name), "w");
+
+	char buff[1024] = { '\0' };
+	int count = 0;
+	while ((count = fread(buff, 1, 1024, fp1)) != 0)
+	{
+		fwrite(buff, 1, count, fp2);
+	}
+
+	fclose(fp1);
+	fclose(fp2);
+}
+
+void version() {
+	if (uname(&uts) >= 0) {
+		cout << "The Kernel version is " << uts.release << endl;
+		cout << "The System is " << uts.sysname <<" " <<uts.nodename << endl;
+		cout << "The Architecture is " << uts.machine << endl;
+	}
 }
